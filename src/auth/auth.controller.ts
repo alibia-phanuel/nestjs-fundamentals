@@ -7,6 +7,12 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger'; // ✅ nouveau
 import { CreateUserDTO } from 'src/users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { UsersService } from 'src/users/users.service';
@@ -17,13 +23,13 @@ import { PayloadType } from './types';
 import { User } from 'src/users/user.entity';
 import { VerifyTwoFactorDto } from './2fa/dto/erify-2fa.dto';
 
-// Type pour typer request.user
 interface RequestWithUser extends Request {
   user: PayloadType;
 }
 
 type UserWithoutPassword = Omit<User, 'password'>;
 
+@ApiTags('Authentication') // ✅ groupe toutes les routes sous "Authentication"
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -36,6 +42,14 @@ export class AuthController {
   // POST /auth/signup
   // ─────────────────────────────────────────
   @Post('signup')
+  @ApiOperation({
+    summary: 'Créer un nouveau compte',
+    description: 'Inscription avec firstName, lastName, email et password',
+  })
+  @ApiResponse({ status: 201, description: '✅ User créé avec succès' })
+  @ApiResponse({ status: 400, description: '❌ Données invalides' })
+  @ApiResponse({ status: 409, description: '❌ Email déjà utilisé' })
+  @ApiResponse({ status: 500, description: '❌ Erreur serveur' })
   async signup(@Body() userDTO: CreateUserDTO): Promise<UserWithoutPassword> {
     try {
       return await this.userService.create(userDTO);
@@ -53,6 +67,14 @@ export class AuthController {
   // POST /auth/login
   // ─────────────────────────────────────────
   @Post('login')
+  @ApiOperation({
+    summary: 'Se connecter',
+    description:
+      'Retourne un token JWT si 2FA désactivé, sinon demande le code 2FA',
+  })
+  @ApiResponse({ status: 200, description: '✅ Token JWT retourné' })
+  @ApiResponse({ status: 401, description: '❌ Identifiants incorrects' })
+  @ApiResponse({ status: 500, description: '❌ Erreur serveur' })
   async login(
     @Body() loginDTO: LoginDto,
   ): Promise<{ accessToken: string } | { message: string }> {
@@ -70,24 +92,27 @@ export class AuthController {
 
   // ─────────────────────────────────────────
   // POST /auth/2fa/setup
-  // Route protégée — user doit être connecté
-  // Génère le QR Code pour activer le 2FA
   // ─────────────────────────────────────────
   @Post('2fa/setup')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth') // ✅ route protégée JWT
+  @ApiOperation({
+    summary: 'Activer le 2FA',
+    description: 'Génère un QR Code à scanner avec Google Authenticator',
+  })
+  @ApiResponse({ status: 200, description: '✅ QR Code retourné' })
+  @ApiResponse({
+    status: 401,
+    description: '❌ Token JWT manquant ou invalide',
+  })
+  @ApiResponse({ status: 500, description: '❌ Erreur serveur' })
   async setupTwoFactor(
     @Request() req: RequestWithUser,
   ): Promise<{ qrCodeUrl: string }> {
     try {
-      // Génère le secret et le QR Code
       const { secret, qrCodeUrl } =
         await this.twoFactorAuthService.generateTwoFactorSecret(req.user.email);
-
-      // Sauvegarde le secret en DB et active le 2FA
       await this.userService.enableTwoFactor(req.user.userId, secret);
-
-      // Retourne le QR Code à afficher au user
-      // Le user va le scanner avec Google Authenticator
       return { qrCodeUrl };
     } catch (error) {
       if (error instanceof HttpException) throw error;
@@ -101,38 +126,40 @@ export class AuthController {
 
   // ─────────────────────────────────────────
   // POST /auth/2fa/verify
-  // Vérifie le code 2FA après le login
   // ─────────────────────────────────────────
   @Post('2fa/verify')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth') // ✅ route protégée JWT
+  @ApiOperation({
+    summary: 'Vérifier le code 2FA',
+    description: 'Vérifie le code à 6 chiffres généré par Google Authenticator',
+  })
+  @ApiResponse({ status: 200, description: '✅ Code 2FA valide' })
+  @ApiResponse({ status: 400, description: '❌ 2FA non activé' })
+  @ApiResponse({ status: 401, description: '❌ Code invalide ou expiré' })
+  @ApiResponse({ status: 500, description: '❌ Erreur serveur' })
   async verifyTwoFactor(
     @Request() req: RequestWithUser,
     @Body() verifyDto: VerifyTwoFactorDto,
   ): Promise<{ verified: boolean }> {
     try {
-      // Récupère le user avec son secret 2FA
       const user = await this.userService.findById(req.user.userId);
-
       if (!user?.twoFactorSecret) {
         throw new HttpException(
           '2FA non activé pour ce compte',
           HttpStatus.BAD_REQUEST,
         );
       }
-
-      // Vérifie le code entré par le user
       const isValid = this.twoFactorAuthService.verifyTwoFactorCode(
         user.twoFactorSecret,
         verifyDto.code,
       );
-
       if (!isValid) {
         throw new HttpException(
           'Code 2FA invalide ou expiré',
           HttpStatus.UNAUTHORIZED,
         );
       }
-
       return { verified: true };
     } catch (error) {
       if (error instanceof HttpException) throw error;
@@ -146,10 +173,17 @@ export class AuthController {
 
   // ─────────────────────────────────────────
   // POST /auth/2fa/disable
-  // Désactive le 2FA pour un user
   // ─────────────────────────────────────────
   @Post('2fa/disable')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth') // ✅ route protégée JWT
+  @ApiOperation({ summary: 'Désactiver le 2FA' })
+  @ApiResponse({ status: 200, description: '✅ 2FA désactivé' })
+  @ApiResponse({
+    status: 401,
+    description: '❌ Token JWT manquant ou invalide',
+  })
+  @ApiResponse({ status: 500, description: '❌ Erreur serveur' })
   async disableTwoFactor(
     @Request() req: RequestWithUser,
   ): Promise<{ message: string }> {
@@ -168,10 +202,20 @@ export class AuthController {
 
   // ─────────────────────────────────────────
   // POST /auth/generate-api-key
-  // Génère une API Key pour le user connecté
   // ─────────────────────────────────────────
   @Post('generate-api-key')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth') // ✅ route protégée JWT
+  @ApiOperation({
+    summary: 'Générer une API Key',
+    description: 'Génère une clé unique à passer dans le header X-API-KEY',
+  })
+  @ApiResponse({ status: 201, description: '✅ API Key générée' })
+  @ApiResponse({
+    status: 401,
+    description: '❌ Token JWT manquant ou invalide',
+  })
+  @ApiResponse({ status: 500, description: '❌ Erreur serveur' })
   async generateApiKey(
     @Request() req: RequestWithUser,
   ): Promise<{ apiKey: string }> {
@@ -189,10 +233,20 @@ export class AuthController {
 
   // ─────────────────────────────────────────
   // POST /auth/revoke-api-key
-  // Révoque l'API Key du user connecté
   // ─────────────────────────────────────────
   @Post('revoke-api-key')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth') // ✅ route protégée JWT
+  @ApiOperation({
+    summary: "Révoquer l'API Key",
+    description: "Supprime l'API Key du user connecté",
+  })
+  @ApiResponse({ status: 200, description: '✅ API Key révoquée' })
+  @ApiResponse({
+    status: 401,
+    description: '❌ Token JWT manquant ou invalide',
+  })
+  @ApiResponse({ status: 500, description: '❌ Erreur serveur' })
   async revokeApiKey(
     @Request() req: RequestWithUser,
   ): Promise<{ message: string }> {

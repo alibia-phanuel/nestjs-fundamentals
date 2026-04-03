@@ -1,21 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DevConfigService } from './common/providers/DevConfigService';
+import { ConfigService } from '@nestjs/config'; // ✅ ConfigService au lieu de DevConfigService
 
 @Injectable()
 export class AppService {
   constructor(
-    // Injection classique — NestJS trouve DevConfigService
-    // grâce au type TypeScript
-    private readonly devConfigService: DevConfigService,
-    // Injection avec token string — obligatoire car 'CONFIG'
-    // est un objet simple sans classe TypeScript associée
-    // { port: string } = la forme de l'objet qu'on attend
-    @Inject('CONFIG') private readonly config: { port: number },
+    // ✅ ConfigService — remplace DevConfigService
+    // accède aux variables .env via configService.get()
+    private readonly configService: ConfigService,
+
+    // Injection du provider CONFIG défini dans AppModule
+    @Inject('CONFIG') private readonly config: { port: number; env: string },
   ) {}
+
   getHello(): string {
-    // On combine les deux services injectés dans la réponse
-    // devConfigService.getDbHost() → 'localhost'
-    // config.port → 3000 (dev) ou 400 (prod)
-    return `Hello World! DB Host: ${this.devConfigService.getDbHost()}, Port: ${this.config.port}`;
+    // ✅ ConfigService pour accéder aux variables d'env
+    const dbHost =
+      this.configService.get<string>('database.host') ?? 'localhost';
+    return `Hello NestJS! 🔥 DB Host: ${dbHost}, Port: ${String(this.config.port)}, Env: ${this.config.env}`;
   }
 }
