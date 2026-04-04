@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: nestjs-spotify-clone
+    runtime: node
+    rootDir: one
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DB_HOST
+        fromDatabase:
+          name: spotify-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: spotify-db
+          property: port
+      - key: DB_USERNAME
+        fromDatabase:
+          name: spotify-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: spotify-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: spotify-db
+          property: database
+      - key: JWT_SECRET
+        sync: false
+
+databases:
+  - name: spotify-db
+    databaseName: spotify_clone
+    user: postgres

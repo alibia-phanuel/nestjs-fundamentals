@@ -2,9 +2,10 @@
   "extends": "./tsconfig.json",
   "exclude": [
     "node_modules",
-    "test", // ✅ exclut le dossier test/
     "dist",
-    "**/*spec.ts", // ✅ exclut tous les fichiers spec
+    "test",
+    "cours",
+    "**/*.spec.ts",
     "**/*.e2e-spec.ts"
   ]
 }

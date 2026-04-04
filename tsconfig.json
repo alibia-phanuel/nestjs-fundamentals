@@ -12,18 +12,25 @@
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
-    "incremental": false, // ← change true en false
     "baseUrl": "./",
-    "rootDir": "./src", // ✅ AJOUTÉ — dit à TS où est le code
+    "rootDir": "./src",
     "paths": {
-      // ✅ AJOUTÉ — résout les imports "src/..."
       "src/*": ["./src/*"]
     },
+    "incremental": false,
     "skipLibCheck": true,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test",
+    "cours",
+    "**/*.spec.ts",
+    "**/*.e2e-spec.ts"
+  ]
 }
