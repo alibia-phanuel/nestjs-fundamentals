@@ -11,18 +11,36 @@ import { User } from './users/user.entity';
 import { Playlist } from './playlists/playlist.entity';
 import { DataSource } from 'typeorm';
 import { AuthModule } from './auth/auth.module';
+import { ChatModule } from './chat/chat.module';
 import { UsersModule } from './users/users.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-
+import { GraphQLModule } from '@nestjs/graphql';
+import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+import { join } from 'path';
+import { SongsGraphqlModule } from './graphql/songs-graphql.module'; // ✅ ajout
+import { AuthGraphqlModule } from './graphql/auth/auth-graphql.module';
 // ✅ Configs par domaine
 import databaseConfig from './config/database.config';
 import appConfig from './config/app.config';
-
 // ✅ Validation Joi au démarrage
 import { envValidationSchema } from './config/env.validation';
 
 @Module({
   imports: [
+    // ✅ GraphQLModule — doit être avant les autres modules
+    GraphQLModule.forRoot<ApolloDriverConfig>({
+      driver: ApolloDriver,
+      autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
+      sortSchema: true,
+      playground: true,
+      // ✅ Active les subscriptions via WebSocket
+      installSubscriptionHandlers: true,
+      subscriptions: {
+        'graphql-ws': true,
+        'subscriptions-transport-ws': true,
+      },
+    }),
+
     // ✅ ConfigModule — charge .env + valide + configs par domaine
     ConfigModule.forRoot({
       isGlobal: true,
@@ -43,24 +61,14 @@ import { envValidationSchema } from './config/env.validation';
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.name'),
         entities: [Song, Artist, User, Playlist],
-
-        // ✅ Jamais true en production !
         synchronize: false,
-
-        // ✅ Migrations exécutées au démarrage
         migrationsRun: true,
-
-        // ✅ .ts en dev, .js en production
         migrations: [
           configService.get<string>('app.env') === 'production'
             ? __dirname + '/migrations/*.js'
             : __dirname + '/migrations/*.ts',
         ],
-
-        // ✅ Logs SQL uniquement en développement
         logging: configService.get<string>('app.env') !== 'production',
-
-        // ✅ Pool de connexions
         extra: {
           max: 10,
           connectionTimeoutMillis: 3000,
@@ -71,19 +79,20 @@ import { envValidationSchema } from './config/env.validation';
     SongsModule,
     AuthModule,
     UsersModule,
+    ChatModule,
+    SongsGraphqlModule,
+    AuthGraphqlModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
-
-    // ✅ Provider CONFIG simplifié via ConfigService
     {
       provide: 'CONFIG',
       useFactory: (configService: ConfigService) => ({
         port: configService.get<number>('app.port'),
         env: configService.get<string>('app.env'),
       }),
-      inject: [ConfigService], // ✅ inject ajouté
+      inject: [ConfigService],
     },
   ],
 })
@@ -97,7 +106,6 @@ export class AppModule implements NestModule {
   }
 
   configure(consumer: MiddlewareConsumer) {
-    // Logger appliqué sur toutes les routes de SongsController
     consumer.apply(LoggerMiddleware).forRoutes(SongsController);
   }
 }

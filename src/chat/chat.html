@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <title>WebSocket Chat</title>
+    <!-- ✅ Socket.io client — version compatible avec le serveur -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial;
+        max-width: 600px;
+        margin: 50px auto;
+      }
+      #messages {
+        border: 1px solid #ccc;
+        height: 300px;
+        overflow-y: auto;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+      .message {
+        margin: 5px 0;
+        padding: 5px;
+        background: #f0f0f0;
+        border-radius: 4px;
+      }
+      input {
+        width: 70%;
+        padding: 8px;
+      }
+      button {
+        padding: 8px 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>💬 WebSocket Chat</h2>
+    <div id="status">⏳ Connexion...</div>
+    <div id="messages"></div>
+    <input type="text" id="author" placeholder="Ton nom" value="User1" />
+    <input type="text" id="message" placeholder="Ton message..." />
+    <button onclick="sendMessage()">Envoyer</button>
+
+    <script>
+      // ✅ Connexion au serveur WebSocket NestJS
+      const socket = io('http://localhost:3001');
+
+      // Quand connecté au serveur
+      socket.on('connected', (data) => {
+        document.getElementById('status').textContent = '✅ Connecté !';
+        console.log(data.message);
+      });
+
+      // Quand un message arrive
+      socket.on('message', (data) => {
+        const div = document.getElementById('messages');
+        div.innerHTML += `
+        <div class="message">
+          <strong>${data.author}</strong>: ${data.text}
+          <small>(${new Date(data.timestamp).toLocaleTimeString()})</small>
+        </div>
+      `;
+        // Auto-scroll vers le bas
+        div.scrollTop = div.scrollHeight;
+      });
+
+      // Envoyer un message
+      function sendMessage() {
+        const text = document.getElementById('message').value;
+        const author = document.getElementById('author').value;
+
+        if (!text.trim()) return;
+
+        // ✅ socket.emit → envoie l'événement 'message' au serveur
+        socket.emit('message', { text, author });
+
+        // Vide le champ message
+        document.getElementById('message').value = '';
+      }
+
+      // Envoyer avec la touche Entrée
+      document.getElementById('message').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+      });
+    </script>
+  </body>
+</html>

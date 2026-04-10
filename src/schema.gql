@@ -1,0 +1,58 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+input CreateSongInput {
+  duration: String!
+  lyrics: String
+  title: String!
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+type LoginResponse {
+  accessToken: String!
+  message: String
+}
+
+type Mutation {
+  createSong(createSongInput: CreateSongInput!): SongModel!
+  deleteSong(id: Int!): Boolean!
+  login(loginInput: LoginInput!): LoginResponse!
+  signup(signupInput: SignupInput!): UserResponse!
+}
+
+type Query {
+  me: UserResponse!
+  song(id: Int!): SongModel
+  songs: [SongModel!]!
+}
+
+input SignupInput {
+  email: String!
+  firstName: String!
+  lastName: String!
+  password: String!
+}
+
+type SongModel {
+  duration: String!
+  id: Int!
+  lyrics: String
+  title: String!
+}
+
+type Subscription {
+  songAdded: SongModel!
+}
+
+type UserResponse {
+  email: String!
+  firstName: String!
+  id: Int!
+  isActive: Boolean!
+  lastName: String!
+}

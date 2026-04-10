@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+  <head>
+    <title>GraphQL Subscription Test</title>
+  </head>
+  <body>
+    <h2>🔴 En attente de nouvelles chansons...</h2>
+    <div id="status">⏳ Connexion...</div>
+    <div id="results"></div>
+
+    <script type="module">
+      import { createClient } from 'https://cdn.jsdelivr.net/npm/graphql-ws@5.14.0/+esm';
+
+      const client = createClient({
+        url: 'ws://localhost:3000/graphql',
+        on: {
+          connected: () => {
+            console.log('✅ WebSocket connecté');
+            document.getElementById('status').textContent = '✅ Connecté !';
+          },
+          error: (err) => {
+            console.error('❌ Connexion erreur:', err);
+            document.getElementById('status').textContent =
+              '❌ Erreur connexion';
+          },
+        },
+      });
+
+      const unsubscribe = client.subscribe(
+        {
+          query: `
+          subscription {
+            songAdded {
+              id
+              title
+              duration
+            }
+          }
+        `,
+        },
+        {
+          next: (data) => {
+            console.log('✅ Nouvelle chanson reçue:', data);
+            const div = document.getElementById('results');
+            div.innerHTML += `
+            <p>✅ Nouvelle chanson :
+              ID: ${data.data.songAdded.id} |
+              Titre: ${data.data.songAdded.title} |
+              Durée: ${data.data.songAdded.duration}
+            </p>
+          `;
+          },
+          error: (err) => {
+            console.error('❌ Subscription erreur:', err);
+            document.getElementById('results').innerHTML +=
+              `<p>❌ Erreur: ${JSON.stringify(err)}</p>`;
+          },
+          complete: () => {
+            console.log('Subscription terminée');
+          },
+        },
+      );
+    </script>
+  </body>
+</html>

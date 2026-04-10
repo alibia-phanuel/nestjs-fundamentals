@@ -9,17 +9,25 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ArtistJwtGuard } from './guards/artist-jwt.guard';
 import { ArtistsModule } from 'src/artists/artists.module';
 import { TwoFactorAuthService } from './2fa/two-factor-auth.service';
-import { ApiKeyStrategy } from './strategies/api-key.strategy'; // ✅
-import { ApiKeyGuard } from './guards/api-key.guard'; // ✅
+import { ApiKeyStrategy } from './strategies/api-key.strategy';
+import { ApiKeyGuard } from './guards/api-key.guard';
+import { ConfigModule, ConfigService } from '@nestjs/config'; // ✅ ajouté
 
 @Module({
   imports: [
     UsersModule,
     ArtistsModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET ?? 'SECRET_KEY',
-      signOptions: { expiresIn: '1d' },
+
+    // ✅ registerAsync — attend que ConfigModule charge .env
+    // avant d'instancier JwtModule
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET') ?? 'SECRET_KEY',
+        signOptions: { expiresIn: '1d' },
+      }),
     }),
   ],
   providers: [
@@ -28,8 +36,8 @@ import { ApiKeyGuard } from './guards/api-key.guard'; // ✅
     JwtAuthGuard,
     ArtistJwtGuard,
     TwoFactorAuthService,
-    ApiKeyStrategy, // ✅ ajouté
-    ApiKeyGuard, // ✅ ajouté
+    ApiKeyStrategy,
+    ApiKeyGuard,
   ],
   controllers: [AuthController],
   exports: [
@@ -37,7 +45,7 @@ import { ApiKeyGuard } from './guards/api-key.guard'; // ✅
     JwtAuthGuard,
     ArtistJwtGuard,
     TwoFactorAuthService,
-    ApiKeyGuard, // ✅ exporté
+    ApiKeyGuard,
   ],
 })
 export class AuthModule {}

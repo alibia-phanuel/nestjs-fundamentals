@@ -3,7 +3,7 @@ import { SongsController } from './songs.controller';
 import { SongsService } from './songs.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Song } from './songs.entity';
-import { connection } from 'src/common/constants/connection'; // ✅ ajout
+import { connection } from 'src/common/constants/connection';
 import { Artist } from 'src/artists/artist.entity';
 
 @Module({
@@ -12,9 +12,12 @@ import { Artist } from 'src/artists/artist.entity';
   providers: [
     SongsService,
     {
-      provide: 'CONNECTION', // ✅ ajout
+      provide: 'CONNECTION',
       useValue: connection,
     },
   ],
+  // ✅ Export SongsService — indispensable pour que
+  // SongsGraphqlModule puisse l'injecter dans SongsResolver
+  exports: [SongsService],
 })
 export class SongsModule {}

@@ -1,7 +1,8 @@
 import { Exclude } from 'class-transformer';
-import { Playlist } from 'src/playlists/playlist.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
+// ✅ On N'importe PAS Playlist directement
+// TypeORM résout la référence lazy via () => Playlist
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
@@ -23,26 +24,17 @@ export class User {
   @Exclude()
   password: string;
 
-  /**
-   * A user can create many playLists
-   */
-  @OneToMany(() => Playlist, (playList) => playList.user)
-  playLists: Playlist[];
+  // ✅ () => Playlist — lazy reference, pas d'import direct
+  @OneToMany('Playlist', 'user')
+  playLists: any[];
 
-  // ✅ Nouveau — le 2FA est-il activé ?
-  // false par défaut — l'user doit l'activer manuellement
   @Column({ default: false })
   isTwoFactorEnabled: boolean;
 
-  // ✅ Nouveau — secret unique par user pour générer les codes
-  // nullable car pas de 2FA par défaut
   @Column({ nullable: true })
   twoFactorSecret: string;
 
-  // ✅ NOUVEAU — API Key unique par user
-  // nullable car générée à la demande
-  // unique car chaque Key doit être différente
-  @Exclude() // ← jamais retournée dans les réponses JSON
+  @Exclude()
   @Column({ nullable: true, unique: true })
   apiKey: string;
 }

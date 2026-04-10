@@ -20,17 +20,17 @@
     "incremental": false,
     "skipLibCheck": true,
     "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true,
+    "strictPropertyInitialization": false,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "types": ["jest", "node"] // ✅ types Jest globaux
   },
   "exclude": [
     "node_modules",
     "dist",
-    "test",
-    "cours",
-    "**/*.spec.ts",
-    "**/*.e2e-spec.ts"
+    "cours"
+    // ✅ On retire **/*.spec.ts et test/ de l'exclude
+    // pour que ESLint et TypeScript les voient !
   ]
 }
