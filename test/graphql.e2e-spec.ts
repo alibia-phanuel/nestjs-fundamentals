@@ -3,7 +3,6 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
-
 // ─────────────────────────────────────────────────────────────
 // 💡 E2E GraphQL — différence avec E2E REST
 //

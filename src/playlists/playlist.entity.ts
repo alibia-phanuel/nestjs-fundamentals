@@ -11,7 +11,6 @@ import {
 export class Playlist {
   @PrimaryGeneratedColumn()
   id: number;
-
   @Column()
   name: string;
 

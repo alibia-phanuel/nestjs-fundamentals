@@ -1,5 +1,9 @@
 import { Logger, MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { QueuesModule } from './queues/queues.module';
+import { CookiesModule } from './cookies/cookies.module';
 import { AppController } from './app.controller';
+import { UploadModule } from './upload/upload.module';
+import { PostsModule } from './posts/posts.module';
 import { AppService } from './app.service';
 import { SongsModule } from './songs/songs.module';
 import { LoggerMiddleware } from './common/middleware/logger/logger.middleware';
@@ -8,6 +12,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Song } from './songs/songs.entity';
 import { Artist } from './artists/artist.entity';
 import { User } from './users/user.entity';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TasksModule } from './tasks/tasks.module';
 import { Playlist } from './playlists/playlist.entity';
 import { DataSource } from 'typeorm';
 import { AuthModule } from './auth/auth.module';
@@ -24,6 +30,7 @@ import databaseConfig from './config/database.config';
 import appConfig from './config/app.config';
 // ✅ Validation Joi au démarrage
 import { envValidationSchema } from './config/env.validation';
+import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
   imports: [
@@ -75,13 +82,19 @@ import { envValidationSchema } from './config/env.validation';
         },
       }),
     }),
-
+    PrismaModule,
     SongsModule,
     AuthModule,
     UsersModule,
     ChatModule,
     SongsGraphqlModule,
     AuthGraphqlModule,
+    PostsModule,
+    UploadModule,
+    ScheduleModule.forRoot(), // ✅ Active le scheduler
+    TasksModule,
+    CookiesModule,
+    QueuesModule,
   ],
   controllers: [AppController],
   providers: [

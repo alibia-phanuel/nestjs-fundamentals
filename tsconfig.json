@@ -24,13 +24,13 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
-    "types": ["jest", "node"] // ✅ types Jest globaux
+    "types": ["jest", "node"]
   },
   "exclude": [
     "node_modules",
     "dist",
-    "cours"
-    // ✅ On retire **/*.spec.ts et test/ de l'exclude
-    // pour que ESLint et TypeScript les voient !
+    "cours",
+    "prisma.config.ts",
+    "src/generated"
   ]
 }

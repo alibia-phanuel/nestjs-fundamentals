@@ -26,6 +26,7 @@ type Mutation {
 }
 
 type Query {
+  artistInfo(name: String!): String
   me: UserResponse!
   song(id: Int!): SongModel
   songs: [SongModel!]!

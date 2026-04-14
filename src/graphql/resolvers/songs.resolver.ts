@@ -4,21 +4,27 @@ import {
   Mutation,
   Args,
   Int,
-  Subscription, // ✅ ajout
+  Subscription,
 } from '@nestjs/graphql';
 import { NotFoundException } from '@nestjs/common';
 import { GraphQLError } from 'graphql';
 import { SongModel } from '../models/song.model';
 import { CreateSongInput } from '../inputs/create-song.input';
 import { SongsService } from '../../songs/songs.service';
-import { pubSub } from '../pubsub'; // ✅ ajout
+import { pubSub } from '../pubsub';
+import { ExternalApiService } from '../../external/external-api.service';
 
 @Resolver(() => SongModel)
 export class SongsResolver {
-  constructor(private readonly songsService: SongsService) {}
+  constructor(
+    private readonly songsService: SongsService,
+    // ✅ ExternalApiService injecté
+    private readonly externalApiService: ExternalApiService,
+  ) {}
 
   // ─────────────────────────────────────────
   // QUERY — GET ALL
+  // GraphQL : query { songs { id title duration } }
   // ─────────────────────────────────────────
   @Query(() => [SongModel], { name: 'songs' })
   async getSongs(): Promise<SongModel[]> {
@@ -33,6 +39,7 @@ export class SongsResolver {
 
   // ─────────────────────────────────────────
   // QUERY — GET ONE
+  // GraphQL : query { song(id: 1) { id title } }
   // ─────────────────────────────────────────
   @Query(() => SongModel, { name: 'song', nullable: true })
   async getSongById(
@@ -52,8 +59,20 @@ export class SongsResolver {
   }
 
   // ─────────────────────────────────────────
+  // QUERY — External API
+  // GraphQL : query { artistInfo(name: "The Weeknd") }
+  // ─────────────────────────────────────────
+  @Query(() => String, { name: 'artistInfo', nullable: true })
+  async getArtistInfo(@Args('name') name: string): Promise<string> {
+    // ✅ On appelle l'API externe via ExternalApiService
+    const data = await this.externalApiService.getArtistInfo(name);
+    // ✅ On sérialise en JSON string car GraphQL
+    // ne peut pas retourner un objet arbitraire directement
+    return JSON.stringify(data);
+  }
+
+  // ─────────────────────────────────────────
   // MUTATION — CREATE
-  // ✅ On publie l'événement après création
   // ─────────────────────────────────────────
   @Mutation(() => SongModel, { name: 'createSong' })
   async createSong(
@@ -84,8 +103,7 @@ export class SongsResolver {
       lyrics: song.lyrics,
     };
 
-    // ✅ Publie l'événement 'songAdded'
-    // Tous les abonnés recevront cette chanson automatiquement
+    // ✅ Publie pour les subscriptions
     await pubSub.publish('songAdded', { songAdded: songModel });
 
     return songModel;
@@ -108,26 +126,12 @@ export class SongsResolver {
 
   // ─────────────────────────────────────────
   // SUBSCRIPTION — songAdded
-  // GraphQL :
-  // subscription {
-  //   songAdded {
-  //     id
-  //     title
-  //     duration
-  //   }
-  // }
   // ─────────────────────────────────────────
   @Subscription(() => SongModel, {
     name: 'songAdded',
-    // ✅ filter — optionnel, filtre les événements
-    // ici on retourne tout mais on pourrait filtrer par artiste etc.
     filter: () => true,
   })
   songAdded() {
-    // ✅ asyncIterableIterator → écoute l'événement 'songAdded'
-    // chaque fois que pubSub.publish('songAdded') est appelé
-    // cette subscription reçoit les données
     return pubSub.asyncIterableIterator('songAdded');
   }
-  s;
 }
